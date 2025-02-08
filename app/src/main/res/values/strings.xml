@@ -2,4 +2,6 @@
     <string name="app_name">Task Application</string>
     <string name="export_tasks">Export Tasks</string>
     <string name="import_tasks" />
+    <string name="refresh">refresh</string>
+    <string name="test_content_provider">Test Content Provider</string>
 </resources>

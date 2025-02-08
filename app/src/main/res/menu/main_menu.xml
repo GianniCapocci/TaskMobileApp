@@ -14,4 +14,10 @@
         android:title="@string/import_tasks"
         app:showAsAction="ifRoom" />
 
+    <item
+        android:id="@+id/action_refresh"
+        android:icon="@android:drawable/ic_popup_sync"
+        android:title="@string/refresh"
+        app:showAsAction="always" />
+
 </menu>

@@ -1,5 +1,7 @@
 package com.example.taskapplication.database;
 
+import android.database.Cursor;
+
 import androidx.room.Dao;
 import androidx.room.Delete;
 import androidx.room.Insert;
@@ -37,5 +39,11 @@ public interface TaskDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertTasks(List<TaskEntity> tasks);
+
+    @Query("SELECT * FROM tasks")
+    Cursor getAllTasksCursor();
+
+    @Query("DELETE FROM tasks WHERE id = :id")
+    int deleteTaskById(int id);
 
 }

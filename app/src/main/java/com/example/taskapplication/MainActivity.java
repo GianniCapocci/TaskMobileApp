@@ -1,5 +1,6 @@
 package com.example.taskapplication;
 
+import android.content.ContentUris;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -7,6 +8,9 @@ import android.os.Handler;
 import android.os.Looper;
 import android.view.Menu;
 import android.view.MenuItem;
+
+import android.content.ContentValues;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -26,6 +30,7 @@ import com.example.taskapplication.utils.TaskImporter;
 import com.example.taskapplication.utils.TaskStatusUpdater;
 import com.example.taskapplication.utils.TaskExporter;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.example.taskapplication.providers.TaskContentProvider;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -61,6 +66,9 @@ public class MainActivity extends AppCompatActivity implements TaskAdapter.OnTas
             Intent intent = new Intent(MainActivity.this, TaskDetailsActivity.class);
             startActivityForResult(intent, REQUEST_ADD_TASK);
         });
+
+        FloatingActionButton fabTestProvider = findViewById(R.id.fabTestProvider);
+        fabTestProvider.setOnClickListener(view -> testContentProvider());
     }
 
     private void scheduleTaskUpdater() {
@@ -146,6 +154,15 @@ public class MainActivity extends AppCompatActivity implements TaskAdapter.OnTas
             selectFile();
             return true;
         }
+        if (item.getItemId() == R.id.action_refresh) {
+            loadTasks();
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setTitle("Tasks Refreshed")
+                    .setMessage("The task list has been updated.")
+                    .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
+                    .show();
+            return true;
+        }
         return super.onOptionsItemSelected(item);
     }
 
@@ -156,4 +173,47 @@ public class MainActivity extends AppCompatActivity implements TaskAdapter.OnTas
 
         startActivityForResult(Intent.createChooser(intent, "Select Task File"), REQUEST_IMPORT_TASKS);
     }
+
+    private void testContentProvider() {
+        new Thread(() -> {
+            Log.d("ContentProviderTest", "Starting Content Provider Tests...");
+            try {
+                ContentValues values = new ContentValues();
+                values.put("shortName", "Meeting");
+                values.put("description", "Discuss project updates");
+                values.put("startTime", "15:00");
+                values.put("duration", 1);
+                values.put("status", "recorded");
+                values.put("location", "Office");
+
+                Uri newTaskUri = getContentResolver().insert(TaskContentProvider.CONTENT_URI, values);
+                Log.d("ContentProviderTest", "Inserted Task URI: " + newTaskUri);
+
+                assert newTaskUri != null;
+                int taskId = (int) ContentUris.parseId(newTaskUri);
+                Log.d("ContentProviderTest", "Extracted Task ID: " + taskId);
+
+                Thread.sleep(10000);
+
+                ContentValues updateValues = new ContentValues();
+                updateValues.put("shortName", "Updated");
+
+                Uri taskUri = Uri.withAppendedPath(TaskContentProvider.CONTENT_URI, String.valueOf(taskId));
+                int rowsUpdated = getContentResolver().update(taskUri, updateValues, null, null);
+                Log.d("ContentProviderTest", "Rows Updated: " + rowsUpdated);
+
+                loadTasks();
+                Thread.sleep(10000);
+
+                Uri deleteUri = Uri.withAppendedPath(TaskContentProvider.CONTENT_URI, String.valueOf(taskId));
+                int rowsDeleted = getContentResolver().delete(deleteUri, null, null);
+                Log.d("ContentProviderTest", "Rows Deleted: " + rowsDeleted);
+                loadTasks();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
+
 }

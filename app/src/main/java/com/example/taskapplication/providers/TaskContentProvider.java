@@ -14,7 +14,7 @@ import com.example.taskapplication.database.TaskEntity;
 
 public class TaskContentProvider extends ContentProvider {
 
-    private static final String AUTHORITY = "com.example.taskmanager.provider";
+    private static final String AUTHORITY = "com.example.taskapplication.provider";
     private static final String TABLE_NAME = "tasks";
     public static final Uri CONTENT_URI = Uri.parse("content://" + AUTHORITY + "/" + TABLE_NAME);
 
@@ -30,43 +30,68 @@ public class TaskContentProvider extends ContentProvider {
     @Override
     public Cursor query(@NonNull Uri uri, @Nullable String[] projection, @Nullable String selection,
                         @Nullable String[] selectionArgs, @Nullable String sortOrder) {
-        return database.getOpenHelper().getReadableDatabase()
-                .query("SELECT * FROM " + TABLE_NAME);
+        return database.taskDao().getAllTasksCursor();
     }
 
     @Nullable
     @Override
     public Uri insert(@NonNull Uri uri, @Nullable ContentValues values) {
+        if (values == null) return null;
+
         TaskEntity task = new TaskEntity();
-        if (values != null) {
-            task.shortName = values.getAsString("shortName");
-            task.description = values.getAsString("description");
-            task.startTime = values.getAsString("startTime");
-            task.duration = values.getAsInteger("duration");
-            task.status = values.getAsString("status");
-            task.location = values.getAsString("location");
-        }
+        task.shortName = values.getAsString("shortName");
+        task.description = values.getAsString("description");
+        task.startTime = values.getAsString("startTime");
+        task.duration = values.getAsInteger("duration");
+        task.status = values.getAsString("status");
+        task.location = values.getAsString("location");
+
         long id = database.taskDao().insertTask(task);
-        return ContentUris.withAppendedId(CONTENT_URI, id);
+        if (id > 0) {
+            Uri newUri = ContentUris.withAppendedId(CONTENT_URI, id);
+            getContext().getContentResolver().notifyChange(newUri, null);
+            return newUri;
+        }
+        return null;
     }
 
     @Override
     public int delete(@NonNull Uri uri, @Nullable String selection, @Nullable String[] selectionArgs) {
-        assert selectionArgs != null;
-        int taskId = Integer.parseInt(selectionArgs[0]);
-        TaskEntity task = new TaskEntity();
-        task.id = taskId;
-        return database.taskDao().deleteTask(task);
+        int id = (int) ContentUris.parseId(uri);
+
+        int rowsDeleted = database.taskDao().deleteTaskById(id);
+        getContext().getContentResolver().notifyChange(uri, null);
+
+        return rowsDeleted;
     }
 
-    @Override
-    public int update(@NonNull Uri uri, @Nullable ContentValues values, @Nullable String selection, @Nullable String[] selectionArgs) {
-        return 0;
+@Override
+public int update(@NonNull Uri uri, @Nullable ContentValues values, @Nullable String selection, @Nullable String[] selectionArgs) {
+    if (values == null) return 0;
+
+    int rowsUpdated = 0;
+    int id = (int) ContentUris.parseId(uri);
+
+    TaskEntity task = database.taskDao().findById(id);
+    if (task != null) {
+        if (values.containsKey("shortName")) task.shortName = values.getAsString("shortName");
+        if (values.containsKey("description")) task.description = values.getAsString("description");
+        if (values.containsKey("startTime")) task.startTime = values.getAsString("startTime");
+        if (values.containsKey("duration")) task.duration = values.getAsInteger("duration");
+        if (values.containsKey("status")) task.status = values.getAsString("status");
+        if (values.containsKey("location")) task.location = values.getAsString("location");
+
+        database.taskDao().updateTask(task);
+        rowsUpdated = 1;
     }
+
+    getContext().getContentResolver().notifyChange(uri, null);
+    return rowsUpdated;
+}
 
     @Nullable
     @Override
     public String getType(@NonNull Uri uri) {
-        return null;
+        return "vnd.android.cursor.dir/vnd." + AUTHORITY + ".tasks";
     }
 }

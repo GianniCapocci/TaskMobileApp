@@ -90,7 +90,7 @@ private void saveTask() {
             database.taskDao().updateTask(task);
         }
         runOnUiThread(() -> {
-            Toast.makeText(TaskDetailsActivity.this, "Task saved.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(TaskDetailsActivity.this, "Task saved/updated.", Toast.LENGTH_SHORT).show();
             setResult(RESULT_OK);
             finish();
         });
